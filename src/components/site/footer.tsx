@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { Facebook, Instagram, MessageCircle } from 'lucide-react'
+import { Facebook, Instagram, MessageCircle, Heart } from 'lucide-react'
 import { waLink } from '@/lib/whatsapp'
 
-const WA_MSG = 'Olá Joana Store! 👋 Vi o site e quero fazer uma encomenda.'
+const WA_MSG = 'Olá Joana Store! Vi o site e quero fazer uma encomenda.'
 
 export function Footer() {
   return (
@@ -51,7 +51,9 @@ export function Footer() {
       <div className="border-t border-creme/10 py-6">
         <div className="container flex flex-col items-center justify-between gap-3 text-xs text-creme-2/60 sm:flex-row">
           <p>© {new Date().getFullYear()} Joana Store. Todos os direitos reservados.</p>
-          <p>Feito com 💛 em Moçambique</p>
+          <p className="flex items-center gap-1.5">
+            Feito com <Heart size={13} strokeWidth={2.5} className="fill-rosa-suave-2 text-rosa-suave-2" /> em Moçambique
+          </p>
         </div>
         <div className="container mt-3 flex justify-center border-t border-creme/5 pt-3 text-[11px] text-creme-2/40">
           <a href="https://frank-perfil.vercel.app" target="_blank" rel="noopener" className="transition hover:text-dourado">

@@ -5,13 +5,13 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { getCategoryIcon } from '@/lib/category-icons'
 import type { Category } from '@/types/database'
 
 export default function AdminCategoriasPage() {
   const { toast } = useToast()
   const [categories, setCategories] = useState<Category[]>([])
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function load() {
@@ -30,7 +30,7 @@ export default function AdminCategoriasPage() {
     const res = await fetch('/api/admin/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, icon: icon || '🏷️', sort_order: categories.length }),
+      body: JSON.stringify({ name, sort_order: categories.length }),
     })
     setLoading(false)
     if (!res.ok) {
@@ -39,7 +39,6 @@ export default function AdminCategoriasPage() {
     }
     toast({ title: 'Categoria criada', variant: 'success' })
     setName('')
-    setIcon('')
     load()
   }
 
@@ -58,23 +57,25 @@ export default function AdminCategoriasPage() {
 
       <form onSubmit={handleCreate} className="flex flex-wrap gap-3 rounded-2xl border border-dourado-claro/25 bg-white p-5 dark:border-preto-suave/60 dark:bg-preto/60">
         <Input placeholder="Nome da categoria" value={name} onChange={(e) => setName(e.target.value)} className="flex-1" required />
-        <Input placeholder="Emoji (opcional)" value={icon} onChange={(e) => setIcon(e.target.value)} className="w-32" />
         <Button type="submit" variant="primary" loading={loading}>
           <Plus size={16} /> Adicionar
         </Button>
       </form>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {categories.map((c) => (
-          <div key={c.id} className="flex items-center justify-between rounded-2xl border border-dourado-claro/25 bg-white p-4 dark:border-preto-suave/60 dark:bg-preto/60">
-            <span className="flex items-center gap-2 font-bold text-preto dark:text-creme">
-              <span className="text-xl">{c.icon}</span> {c.name}
-            </span>
-            <button onClick={() => handleDelete(c.id)} className="text-preto-suave/50 hover:text-red-500">
-              <Trash2 size={15} />
-            </button>
-          </div>
-        ))}
+        {categories.map((c) => {
+          const Icon = getCategoryIcon(c.slug)
+          return (
+            <div key={c.id} className="flex items-center justify-between rounded-2xl border border-dourado-claro/25 bg-white p-4 dark:border-preto-suave/60 dark:bg-preto/60">
+              <span className="flex items-center gap-2 font-bold text-preto dark:text-creme">
+                <Icon size={18} strokeWidth={2} /> {c.name}
+              </span>
+              <button onClick={() => handleDelete(c.id)} className="text-preto-suave/50 hover:text-red-500">
+                <Trash2 size={15} />
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

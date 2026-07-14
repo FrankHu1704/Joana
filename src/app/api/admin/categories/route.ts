@@ -6,7 +6,6 @@ import { slugify } from '@/lib/utils'
 
 const schema = z.object({
   name: z.string().min(1),
-  icon: z.string().max(8).optional(),
   sort_order: z.number().int().default(0),
 })
 

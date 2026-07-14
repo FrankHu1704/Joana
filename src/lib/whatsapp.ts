@@ -9,7 +9,7 @@ export function waLink(message: string) {
 
 export function buildProductMessage(product: Pick<Product, 'name' | 'price' | 'promo_price' | 'is_promotion'>) {
   const price = effectivePrice(product)
-  return `Olá Joana Store! 👋 Quero encomendar: *${product.name}* — ${formatMZN(price)}.`
+  return `Olá Joana Store! Quero encomendar: *${product.name}* — ${formatMZN(price)}.`
 }
 
 export interface CartLineForMessage {
@@ -19,7 +19,7 @@ export interface CartLineForMessage {
 }
 
 export function buildCartMessage(lines: CartLineForMessage[], total: number, couponCode?: string) {
-  let msg = 'Olá Joana Store! 👋 Quero finalizar a minha encomenda:\n\n'
+  let msg = 'Olá Joana Store! Quero finalizar a minha encomenda:\n\n'
   lines.forEach((l) => {
     msg += `• ${l.quantity}x ${l.name} — ${formatMZN(l.price * l.quantity)}\n`
   })

@@ -5,7 +5,7 @@ import { MessageCircle } from 'lucide-react'
 import { useCartStore } from '@/lib/stores/cart-store'
 import { buildCartMessage, waLink } from '@/lib/whatsapp'
 
-const GENERIC_MSG = 'Olá Joana Store! 👋 Vi o site e quero fazer uma encomenda.'
+const GENERIC_MSG = 'Olá Joana Store! Vi o site e quero fazer uma encomenda.'
 
 export function WhatsappFloat() {
   const [mounted, setMounted] = useState(false)

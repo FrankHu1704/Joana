@@ -13,7 +13,7 @@ import { waLink } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
 import type { Category } from '@/types/database'
 
-const GENERIC_WA_MSG = 'Olá Joana Store! 👋 Vi o site e quero fazer uma encomenda.'
+const GENERIC_WA_MSG = 'Olá Joana Store! Vi o site e quero fazer uma encomenda.'
 
 export function Navbar({ categories }: { categories: Category[] }) {
   const [open, setOpen] = useState(false)

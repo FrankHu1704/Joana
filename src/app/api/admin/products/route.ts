@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   if (data.is_active) {
     notifySubscribers(auth.supabase, {
-      title: 'Novo produto na Joana Store! ✨',
+      title: 'Novo produto na Joana Store!',
       body: data.name,
       url: `/produto/${data.slug}`,
       icon: data.images?.[0],
