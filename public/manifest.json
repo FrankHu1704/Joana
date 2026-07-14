@@ -1,0 +1,14 @@
+{
+  "name": "Joana Store — Moda, Acessórios & Calçado",
+  "short_name": "Joana Store",
+  "description": "Moda masculina, feminina, calçado e acessórios em Moçambique.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF6",
+  "theme_color": "#C24A6B",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

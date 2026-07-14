@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-creme text-preto antialiased dark:bg-surface-dark dark:text-creme;
+  }
+  ::selection {
+    @apply bg-rosa-suave-2/60;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-fraunces), serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply border border-dourado-claro/30 bg-white/70 backdrop-blur-xl dark:border-preto-suave/60 dark:bg-preto/60;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .text-gradient-gold {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
+  }
+}
+
+/* Swiper overrides for the brand look */
+.swiper-pagination-bullet {
+  background: #b8933c !important;
+  opacity: 0.4;
+}
+.swiper-pagination-bullet-active {
+  opacity: 1;
+}
+.swiper-button-next,
+.swiper-button-prev {
+  color: #c24a6b !important;
+}
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 18px !important;
+}
