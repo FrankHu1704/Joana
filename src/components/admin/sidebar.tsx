@@ -42,6 +42,9 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-preto-suave hover:bg-creme-2 dark:text-creme-2/70 dark:hover:bg-preto-suave/40">
           <ArrowLeftCircle size={18} /> Ver loja
         </Link>
+        <a href="https://frank-perfil.vercel.app" target="_blank" rel="noopener" className="mt-2 block px-3 text-center text-[10px] text-preto-suave/50 hover:text-rosa-profundo dark:text-creme-2/30">
+          by FRANK AI SOLUTIONS
+        </a>
       </div>
     </div>
   )

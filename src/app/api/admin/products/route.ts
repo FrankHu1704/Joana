@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { authenticateAdmin } from '@/lib/api-session'
 import { jsonError, jsonOk } from '@/lib/api-response'
 import { slugify } from '@/lib/utils'
+import { notifySubscribers } from '@/lib/push/send'
 
 const productSchema = z.object({
   name: z.string().min(2),
@@ -57,5 +58,15 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return jsonError('Não foi possível criar o produto', 500)
+
+  if (data.is_active) {
+    notifySubscribers(auth.supabase, {
+      title: 'Novo produto na Joana Store! ✨',
+      body: data.name,
+      url: `/produto/${data.slug}`,
+      icon: data.images?.[0],
+    }).catch(() => {})
+  }
+
   return jsonOk({ data }, 201)
 }

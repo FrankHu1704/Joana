@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { phoneToAdminEmail } from '@/lib/admin-identity'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,11 +25,11 @@ function LoginForm() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: phoneToAdminEmail(phone), password })
 
     if (signInError) {
       setLoading(false)
-      setError('Email ou senha incorrectos.')
+      setError('Número ou senha incorrectos.')
       return
     }
 
@@ -62,8 +63,16 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-creme-2/60">Email</label>
-            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="border-creme/15 bg-white/5 text-creme placeholder:text-creme-2/30" />
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-creme-2/60">Número de telefone</label>
+            <Input
+              type="tel"
+              inputMode="numeric"
+              placeholder="84 000 0000"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="border-creme/15 bg-white/5 text-creme placeholder:text-creme-2/30"
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-creme-2/60">Senha</label>

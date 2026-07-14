@@ -53,6 +53,11 @@ export function Footer() {
           <p>© {new Date().getFullYear()} Joana Store. Todos os direitos reservados.</p>
           <p>Feito com 💛 em Moçambique</p>
         </div>
+        <div className="container mt-3 flex justify-center border-t border-creme/5 pt-3 text-[11px] text-creme-2/40">
+          <a href="https://frank-perfil.vercel.app" target="_blank" rel="noopener" className="transition hover:text-dourado">
+            by FRANK AI SOLUTIONS
+          </a>
+        </div>
       </div>
     </footer>
   )

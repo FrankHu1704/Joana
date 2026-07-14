@@ -64,6 +64,14 @@ export type Coupon = {
   created_at: string
 }
 
+export type PushSubscriptionRow = {
+  id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  created_at: string
+}
+
 export type AdminStats = {
   total_visitors: number
   visitors_today: number
@@ -114,6 +122,7 @@ export type Database = {
         ]
       >
       store_coupons: Table<Coupon>
+      store_push_subscriptions: Table<PushSubscriptionRow>
     }
     Views: Record<string, never>
     Functions: {
@@ -136,6 +145,8 @@ export type Database = {
       }
       store_redeem_coupon: { Args: { p_code: string }; Returns: undefined }
       store_record_sale: { Args: { p_product_ids: string[] }; Returns: undefined }
+      store_subscribe_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: undefined }
+      store_unsubscribe_push: { Args: { p_endpoint: string }; Returns: undefined }
     }
   }
 }

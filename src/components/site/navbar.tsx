@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Heart, Menu, ShoppingBag, X } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SearchBar } from './search-bar'
+import { NotificationToggle } from './notification-toggle'
+import { InstallAppButton } from './install-app-button'
 import { useCartStore } from '@/lib/stores/cart-store'
 import { useFavoritesStore } from '@/lib/stores/favorites-store'
 import { waLink } from '@/lib/whatsapp'
@@ -45,6 +47,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle className="hidden h-10 w-10 items-center justify-center rounded-full border border-dourado-claro/40 text-preto-suave transition hover:bg-rosa-suave/40 dark:border-preto-suave dark:text-creme-2 sm:flex" />
+          <NotificationToggle className="hidden h-10 w-10 items-center justify-center rounded-full border border-dourado-claro/40 text-preto-suave transition hover:bg-rosa-suave/40 dark:border-preto-suave dark:text-creme-2 sm:flex" />
           <Link
             href="/favoritos"
             className="relative flex h-10 w-10 items-center justify-center rounded-full text-preto-suave transition hover:bg-rosa-suave/40 dark:text-creme-2 dark:hover:bg-preto-suave/40"
@@ -81,7 +84,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
         </div>
       </nav>
 
-      <div className={cn('overflow-hidden border-t border-dourado-claro/20 bg-creme-2 transition-[max-height] duration-300 dark:border-preto-suave/60 dark:bg-preto lg:hidden', open ? 'max-h-[420px]' : 'max-h-0')}>
+      <div className={cn('overflow-hidden border-t border-dourado-claro/20 bg-creme-2 transition-[max-height] duration-300 dark:border-preto-suave/60 dark:bg-preto lg:hidden', open ? 'max-h-[560px]' : 'max-h-0')}>
         <div className="container flex flex-col gap-4 py-5">
           <SearchBar compact onNavigate={() => setOpen(false)} />
           <div className="flex flex-col gap-1">
@@ -97,12 +100,14 @@ export function Navbar({ categories }: { categories: Category[] }) {
               Novidades
             </Link>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <ThemeToggle />
-            <a href={waLink(GENERIC_WA_MSG)} target="_blank" rel="noopener" className="flex-1 rounded-full bg-preto px-5 py-3 text-center text-sm font-bold text-creme">
-              Fazer encomenda
-            </a>
+            <NotificationToggle />
+            <InstallAppButton />
           </div>
+          <a href={waLink(GENERIC_WA_MSG)} target="_blank" rel="noopener" className="rounded-full bg-preto px-5 py-3 text-center text-sm font-bold text-creme">
+            Fazer encomenda
+          </a>
         </div>
       </div>
     </header>
