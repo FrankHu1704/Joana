@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Minus, Plus, Trash2, ShoppingBag, Tag, MessageCircle } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBag, Tag, MessageCircle, CreditCard } from 'lucide-react'
 import { useCartStore } from '@/lib/stores/cart-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,10 @@ export default function CarrinhoPage() {
   const [couponCode, setCouponCode] = useState('')
   const [coupon, setCoupon] = useState<{ code: string; discount_percent: number; discount_amount: number } | null>(null)
   const [validating, setValidating] = useState(false)
+
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [paying, setPaying] = useState(false)
 
   const discount = coupon ? Math.min(total, total * (coupon.discount_percent / 100) + coupon.discount_amount) : 0
   const finalTotal = Math.max(0, total - discount)
@@ -46,14 +50,50 @@ export default function CarrinhoPage() {
     toast({ title: 'Cupão aplicado!', description: json.data.code, variant: 'success' })
   }
 
-  async function finalizeOrder() {
+  function finalizeViaWhatsapp() {
     const message = buildCartMessage(items, finalTotal, coupon?.code)
-    fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_ids: items.map((i) => i.id), coupon_code: coupon?.code }),
-    }).catch(() => {})
     window.open(waLink(message), '_blank')
+  }
+
+  async function payAutomatically() {
+    if (!customerName.trim() || !customerPhone.trim()) {
+      toast({ title: 'Faltam dados', description: 'Indique o seu nome e número de WhatsApp para pagar.', variant: 'error' })
+      return
+    }
+
+    setPaying(true)
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          coupon_code: coupon?.code,
+        }),
+      })
+      const json = await res.json()
+
+      if (!json?.success) {
+        toast({ title: 'Não foi possível iniciar o pagamento', description: json?.error || 'Tente novamente.', variant: 'error' })
+        return
+      }
+
+      if (json.payment_url) {
+        window.location.href = json.payment_url
+        return
+      }
+
+      // DebitoPay ainda não está configurado — a encomenda ficou registada,
+      // continue pelo WhatsApp para confirmar o pagamento manualmente.
+      toast({ title: 'Pagamento automático indisponível', description: 'A finalizar via WhatsApp.', variant: 'info' })
+      finalizeViaWhatsapp()
+    } catch {
+      toast({ title: 'Erro de ligação', description: 'Verifique a sua internet e tente novamente.', variant: 'error' })
+    } finally {
+      setPaying(false)
+    }
   }
 
   if (items.length === 0) {
@@ -135,11 +175,19 @@ export default function CarrinhoPage() {
             </div>
           </div>
 
-          <Button variant="primary" size="lg" className="w-full !bg-emerald-600 hover:!bg-emerald-700" onClick={finalizeOrder}>
+          <div className="space-y-2 border-t border-dourado-claro/20 pt-4 dark:border-preto-suave/40">
+            <Input placeholder="O seu nome" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+            <Input placeholder="WhatsApp (ex: 84xxxxxxx)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+          </div>
+
+          <Button variant="primary" size="lg" className="w-full" onClick={payAutomatically} loading={paying}>
+            <CreditCard size={18} /> Pagar agora
+          </Button>
+          <Button variant="outline" size="lg" className="w-full" onClick={finalizeViaWhatsapp}>
             <MessageCircle size={18} /> Finalizar via WhatsApp
           </Button>
           <p className="text-center text-[11px] text-preto-suave/60 dark:text-creme-2/40">
-            Ao finalizar, será redireccionado para o WhatsApp para confirmar a sua encomenda.
+            &ldquo;Pagar agora&rdquo; processa o pagamento automaticamente. Prefere combinar com a Joana? Finalize via WhatsApp.
           </p>
         </div>
       </div>

@@ -72,6 +72,27 @@ export type PushSubscriptionRow = {
   created_at: string
 }
 
+export type OrderItem = { product_id: string; name: string; quantity: number; unit_price: number }
+
+export type Order = {
+  id: string
+  items: OrderItem[]
+  customer_name: string
+  customer_phone: string
+  customer_email: string | null
+  coupon_code: string | null
+  subtotal: number
+  discount: number
+  amount: number
+  currency: string
+  status: 'pending' | 'paid' | 'failed' | 'cancelled'
+  provider: string
+  provider_transaction_id: string | null
+  payment_url: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type AdminStats = {
   total_visitors: number
   visitors_today: number
@@ -123,6 +144,7 @@ export type Database = {
       >
       store_coupons: Table<Coupon>
       store_push_subscriptions: Table<PushSubscriptionRow>
+      store_orders: Table<Order, Partial<Order>, Partial<Order>>
     }
     Views: Record<string, never>
     Functions: {
@@ -147,6 +169,21 @@ export type Database = {
       store_record_sale: { Args: { p_product_ids: string[] }; Returns: undefined }
       store_subscribe_push: { Args: { p_endpoint: string; p_p256dh: string; p_auth: string }; Returns: undefined }
       store_unsubscribe_push: { Args: { p_endpoint: string }; Returns: undefined }
+      store_create_order: {
+        Args: {
+          p_items: { product_id: string; quantity: number }[]
+          p_customer_name: string
+          p_customer_phone: string
+          p_customer_email?: string | null
+          p_coupon_code?: string | null
+        }
+        Returns: Order
+      }
+      store_set_order_payment_session: { Args: { p_order_id: string; p_payment_url: string }; Returns: undefined }
+      store_mark_order_paid: {
+        Args: { p_order_id: string; p_provider_transaction_id?: string | null }
+        Returns: Order | null
+      }
     }
   }
 }

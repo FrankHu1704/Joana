@@ -46,6 +46,16 @@ Não existe registo público de administradores. Para criar um novo administrado
 
 A conta da Joana (número `864597500`) já foi criada directamente na base de dados — **a senha nunca é guardada no código-fonte**, apenas na tabela de autenticação do Supabase, para evitar expor a credencial no repositório do GitHub.
 
+## Pagamentos automáticos (DebitoPay)
+
+O checkout nativo (`/carrinho`) pode processar pagamentos automaticamente através do orquestrador DebitoPay:
+
+1. Preencha `DEBITOPAY_API_KEY`, `DEBITOPAY_MERCHANT_ID` e `DEBITOPAY_WEBHOOK_SECRET` (fornecidos pela DebitoPay) no `.env.local` / nas variáveis de ambiente da Vercel.
+2. Registe o endpoint de webhook `https://<domínio>/api/checkout/webhook` junto da DebitoPay — é ele que confirma o pagamento e fecha a encomenda.
+3. Aplique a migração `supabase/migrations/0003_orders_debitopay.sql` (tabela `store_orders` + funções `store_create_order`, `store_set_order_payment_session`, `store_mark_order_paid`).
+
+O valor cobrado é sempre recalculado no servidor a partir dos preços em `store_products` e do cupão validado — nunca é confiado a partir do cliente. Enquanto as variáveis `DEBITOPAY_*` não estiverem definidas, o botão "Pagar agora" regista a encomenda na mesma e recorre automaticamente ao checkout via WhatsApp.
+
 ## Catálogo inicial
 
 O catálogo foi semeado directamente no Supabase (ver secção de migrações abaixo) combinando:
@@ -82,7 +92,8 @@ src/
 - **Pesquisa inteligente** em tempo real com resultados instantâneos.
 - **Filtros** por categoria, preço e novidades/promoções/destaque, com scroll infinito.
 - **Favoritos e carrinho** persistidos no dispositivo (sem necessidade de conta de cliente).
-- **Checkout via WhatsApp**: o carrinho é convertido numa mensagem formatada e o pedido é enviado directamente pelo WhatsApp da loja (não há gateway de pagamento online, tal como no modelo original da Joana Store).
+- **Pagamento automático via DebitoPay**: no carrinho, "Pagar agora" cria a encomenda (`store_orders`, valor recalculado no servidor a partir dos preços actuais) e abre uma sessão de pagamento no orquestrador DebitoPay. Um webhook (`/api/checkout/webhook`) valida a assinatura HMAC e marca a encomenda como paga automaticamente. Sem as variáveis `DEBITOPAY_*` configuradas, o botão recorre automaticamente ao checkout via WhatsApp.
+- **Checkout via WhatsApp**: alternativa manual — o carrinho é convertido numa mensagem formatada e o pedido é enviado directamente pelo WhatsApp da loja.
 - **Cupões de desconto** validados via função segura no Supabase (`store_validate_coupon`).
 - **Estatísticas de visitantes**: cada visita é registada (`store_track_view`), alimentando o dashboard administrativo (visitantes totais/hoje, gráfico de visitas, gráfico por categoria, produtos mais vistos/vendidos, últimos acessos).
 - **Modo escuro/claro**, **PWA instalável** (botão "Instalar app" quando o navegador suporta), **SEO** (metadata dinâmica, JSON-LD de produto, sitemap.xml, robots.txt).
