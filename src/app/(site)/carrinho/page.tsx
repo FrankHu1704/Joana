@@ -24,7 +24,7 @@ export default function CarrinhoPage() {
   const [validating, setValidating] = useState(false)
 
   const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
   const [paying, setPaying] = useState(false)
 
   const discount = coupon ? Math.min(total, total * (coupon.discount_percent / 100) + coupon.discount_amount) : 0
@@ -50,45 +50,53 @@ export default function CarrinhoPage() {
     toast({ title: 'Cupão aplicado!', description: json.data.code, variant: 'success' })
   }
 
+  function recordSale() {
+    // Sinal "melhor esforço" para o dashboard admin — não guarda a encomenda,
+    // apenas incrementa contadores de vendas/uso de cupão.
+    fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_ids: items.map((i) => i.id), coupon_code: coupon?.code }),
+    }).catch(() => {})
+  }
+
   function finalizeViaWhatsapp() {
+    recordSale()
     const message = buildCartMessage(items, finalTotal, coupon?.code)
     window.open(waLink(message), '_blank')
   }
 
   async function payAutomatically() {
-    if (!customerName.trim() || !customerPhone.trim()) {
-      toast({ title: 'Faltam dados', description: 'Indique o seu nome e número de WhatsApp para pagar.', variant: 'error' })
+    if (!customerName.trim()) {
+      toast({ title: 'Falta o seu nome', description: 'Indique o seu nome para pagar.', variant: 'error' })
       return
     }
 
     setPaying(true)
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await fetch('/api/debitopay/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+          amount: finalTotal,
+          currency: 'MZN',
+          order_id: crypto.randomUUID(),
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          coupon_code: coupon?.code,
+          customer_email: customerEmail.trim() || undefined,
+          return_url: `${window.location.origin}/carrinho/confirmacao`,
         }),
       })
       const json = await res.json()
 
-      if (!json?.success) {
-        toast({ title: 'Não foi possível iniciar o pagamento', description: json?.error || 'Tente novamente.', variant: 'error' })
+      if (!json?.success || !json.payment_url) {
+        // DebitoPay indisponível/não configurado — continue pelo WhatsApp.
+        toast({ title: 'Pagamento automático indisponível', description: 'A finalizar via WhatsApp.', variant: 'info' })
+        finalizeViaWhatsapp()
         return
       }
 
-      if (json.payment_url) {
-        window.location.href = json.payment_url
-        return
-      }
-
-      // DebitoPay ainda não está configurado — a encomenda ficou registada,
-      // continue pelo WhatsApp para confirmar o pagamento manualmente.
-      toast({ title: 'Pagamento automático indisponível', description: 'A finalizar via WhatsApp.', variant: 'info' })
-      finalizeViaWhatsapp()
+      recordSale()
+      window.location.href = json.payment_url
     } catch {
       toast({ title: 'Erro de ligação', description: 'Verifique a sua internet e tente novamente.', variant: 'error' })
     } finally {
@@ -177,7 +185,7 @@ export default function CarrinhoPage() {
 
           <div className="space-y-2 border-t border-dourado-claro/20 pt-4 dark:border-preto-suave/40">
             <Input placeholder="O seu nome" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            <Input placeholder="WhatsApp (ex: 84xxxxxxx)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            <Input placeholder="E-mail (opcional)" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
           </div>
 
           <Button variant="primary" size="lg" className="w-full" onClick={payAutomatically} loading={paying}>

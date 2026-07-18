@@ -1,12 +1,12 @@
 import crypto from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { createAnonServerClient } from '@/lib/supabase/anon'
 
 /**
- * Webhook DebitoPay — confirma o pagamento e marca a encomenda como paga.
- * Adaptado de functions/webhook.js do pacote DebitoPay for Shopify: valida
- * o timestamp (janela de 5 min) e a assinatura HMAC-SHA256 antes de confiar
- * no payload.
+ * Webhook DebitoPay — porte de functions/webhook.js. Valida o timestamp
+ * (janela de 5 min) e a assinatura HMAC-SHA256 do payload antes de aceitar
+ * a notificação. A Joana Store não guarda encomendas nem regista dados
+ * localmente: este endpoint apenas confirma a assinatura e reconhece a
+ * notificação (a confirmação chega ao cliente pelo return_url).
  */
 export async function POST(req: NextRequest) {
   const raw = await req.text()
@@ -27,17 +27,8 @@ export async function POST(req: NextRequest) {
     return new Response('bad_sig', { status: 401 })
   }
 
-  const payload = JSON.parse(raw) as { status?: string; source_id?: string; transaction_id?: string }
+  const payload = JSON.parse(raw) as { status?: string }
   if (payload.status !== 'success') return new Response('ignored')
-  if (!payload.source_id) return new Response('bad_payload', { status: 400 })
-
-  const supabase = createAnonServerClient()
-  const { data: order, error } = await supabase.rpc('store_mark_order_paid', {
-    p_order_id: payload.source_id,
-    p_provider_transaction_id: payload.transaction_id || null,
-  })
-  if (error) return new Response('error', { status: 500 })
-  if (!order) return new Response('ignored')
 
   return new Response('OK')
 }

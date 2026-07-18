@@ -1,7 +1,8 @@
 /**
- * Cliente DebitoPay — orquestrador de pagamentos (payment-orchestrator),
- * adaptado do pacote DebitoPay for Shopify (functions/checkout.js e
- * functions/webhook.js) para o checkout nativo da Joana Store.
+ * Cliente DebitoPay — orquestrador de pagamentos (payment-orchestrator).
+ * Porte directo de functions/checkout.js do pacote DebitoPay for Shopify:
+ * um proxy sem estado, sem qualquer tabela ou registo local — a Joana Store
+ * não guarda dados da encomenda, apenas encaminha o pedido de pagamento.
  */
 const ORCHESTRATOR_URL =
   process.env.DEBITOPAY_ORCHESTRATOR_URL || 'https://gyqoaningqhurhvdugne.supabase.co/functions/v1/payment-orchestrator'
