@@ -1,15 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Minus, Plus, Trash2, ShoppingBag, Tag, MessageCircle, CreditCard } from 'lucide-react'
 import { useCartStore } from '@/lib/stores/cart-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { formatMZN } from '@/lib/utils'
 import { buildCartMessage, waLink } from '@/lib/whatsapp'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^\+?[0-9]{9,15}$/
+const POLL_INTERVAL_MS = 4000
+const POLL_MAX_ATTEMPTS = 90 // ~6 minutos
 
 export default function CarrinhoPage() {
   const { toast } = useToast()
@@ -25,7 +31,20 @@ export default function CarrinhoPage() {
 
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'emola' | 'mkesh'>('mpesa')
   const [paying, setPaying] = useState(false)
+  const [autoStatus, setAutoStatus] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null)
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function stopPolling() {
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current)
+      pollTimer.current = null
+    }
+  }
+
+  useEffect(() => stopPolling, [])
 
   const discount = coupon ? Math.min(total, total * (coupon.discount_percent / 100) + coupon.discount_amount) : 0
   const finalTotal = Math.max(0, total - discount)
@@ -67,39 +86,81 @@ export default function CarrinhoPage() {
   }
 
   async function payAutomatically() {
-    if (!customerName.trim()) {
-      toast({ title: 'Falta o seu nome', description: 'Indique o seu nome para pagar.', variant: 'error' })
-      return
+    if (!customerName.trim()) return setAutoStatus({ type: 'error', text: 'Indique o seu nome.' })
+    if (!EMAIL_RE.test(customerEmail.trim())) return setAutoStatus({ type: 'error', text: 'Introduza um e-mail válido.' })
+    if (!PHONE_RE.test(customerPhone.trim())) {
+      return setAutoStatus({ type: 'error', text: 'Introduza um número de carteira válido (com código do país).' })
     }
 
+    stopPolling()
     setPaying(true)
+    setAutoStatus({ type: 'info', text: 'A enviar o pedido de pagamento para o seu telemóvel…' })
+
     try {
       const res = await fetch('/api/debitopay/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          payment_method: paymentMethod,
           amount: finalTotal,
           currency: 'MZN',
           order_id: crypto.randomUUID(),
           customer_name: customerName.trim(),
-          customer_email: customerEmail.trim() || undefined,
-          return_url: `${window.location.origin}/carrinho/confirmacao`,
+          customer_email: customerEmail.trim(),
+          customer_phone: customerPhone.trim(),
         }),
       })
       const json = await res.json()
 
-      if (!json?.success || !json.payment_url) {
-        // DebitoPay indisponível/não configurado — continue pelo WhatsApp.
-        toast({ title: 'Pagamento automático indisponível', description: 'A finalizar via WhatsApp.', variant: 'info' })
-        finalizeViaWhatsapp()
+      if (!json?.success) {
+        setAutoStatus({ type: 'error', text: json?.error || 'Não foi possível processar o pagamento.' })
+        setPaying(false)
         return
       }
 
-      recordSale()
-      window.location.href = json.payment_url
+      if (json.status === 'success') {
+        recordSale()
+        setAutoStatus({ type: 'success', text: `Pagamento confirmado! Referência: ${json.reference || '—'}.` })
+        setPaying(false)
+        return
+      }
+
+      // e-Mola / mKesh: pending — o cliente recebe o pedido de PIN no
+      // telemóvel; aguardamos a confirmação com polling.
+      setAutoStatus({ type: 'info', text: `Confirme o pagamento no seu telefone (${paymentMethod.toUpperCase()})…` })
+      let attempts = 0
+      pollTimer.current = setInterval(async () => {
+        attempts += 1
+        if (attempts > POLL_MAX_ATTEMPTS) {
+          stopPolling()
+          setAutoStatus({ type: 'error', text: 'Tempo de confirmação esgotado. Se já pagou, contacte-nos pelo WhatsApp.' })
+          setPaying(false)
+          return
+        }
+        try {
+          const statusRes = await fetch('/api/debitopay/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_id: json.payment_id }),
+          })
+          if (!statusRes.ok) return
+          const statusJson = await statusRes.json()
+          if (statusJson?.status === 'success') {
+            stopPolling()
+            recordSale()
+            setAutoStatus({ type: 'success', text: `Pagamento confirmado! Referência: ${statusJson.reference || '—'}.` })
+            setPaying(false)
+          } else if (statusJson?.status === 'failed' || statusJson?.status === 'expired') {
+            stopPolling()
+            setAutoStatus({ type: 'error', text: 'O pagamento não foi confirmado. Pode tentar novamente.' })
+            setPaying(false)
+          }
+        } catch {
+          // erro de rede pontual: mantém o polling silenciosamente
+        }
+      }, POLL_INTERVAL_MS)
     } catch {
-      toast({ title: 'Erro de ligação', description: 'Verifique a sua internet e tente novamente.', variant: 'error' })
-    } finally {
+      setAutoStatus({ type: 'error', text: 'Erro de ligação. Verifique a sua internet e tente novamente.' })
       setPaying(false)
     }
   }
@@ -185,17 +246,44 @@ export default function CarrinhoPage() {
 
           <div className="space-y-2 border-t border-dourado-claro/20 pt-4 dark:border-preto-suave/40">
             <Input placeholder="O seu nome" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            <Input placeholder="E-mail (opcional)" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+            <Input placeholder="O seu e-mail" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+            <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}>
+              <option value="mpesa">M-Pesa</option>
+              <option value="emola">e-Mola</option>
+              <option value="mkesh">mKesh</option>
+            </Select>
+            <Input
+              placeholder="Número da carteira (+258 8X XXX XXXX)"
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+            />
           </div>
 
           <Button variant="primary" size="lg" className="w-full" onClick={payAutomatically} loading={paying}>
             <CreditCard size={18} /> Pagar agora
           </Button>
+
+          {autoStatus && (
+            <p
+              className={`rounded-xl px-3 py-2 text-center text-xs font-medium ${
+                autoStatus.type === 'success'
+                  ? 'bg-emerald-500/10 text-emerald-600'
+                  : autoStatus.type === 'error'
+                    ? 'bg-red-500/10 text-red-600'
+                    : 'bg-rosa-suave/40 text-rosa-profundo'
+              }`}
+            >
+              {autoStatus.text}
+            </p>
+          )}
+
           <Button variant="outline" size="lg" className="w-full" onClick={finalizeViaWhatsapp}>
             <MessageCircle size={18} /> Finalizar via WhatsApp
           </Button>
           <p className="text-center text-[11px] text-preto-suave/60 dark:text-creme-2/40">
-            &ldquo;Pagar agora&rdquo; processa o pagamento automaticamente. Prefere combinar com a Joana? Finalize via WhatsApp.
+            &ldquo;Pagar agora&rdquo; envia um pedido de PIN directo para o seu telemóvel. Prefere combinar com a Joana?
+            Finalize via WhatsApp.
           </p>
         </div>
       </div>

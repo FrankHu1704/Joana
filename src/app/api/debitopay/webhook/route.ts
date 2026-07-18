@@ -2,33 +2,30 @@ import crypto from 'node:crypto'
 import { NextRequest } from 'next/server'
 
 /**
- * Webhook DebitoPay — porte de functions/webhook.js. Valida o timestamp
- * (janela de 5 min) e a assinatura HMAC-SHA256 do payload antes de aceitar
- * a notificação. A Joana Store não guarda encomendas nem regista dados
- * localmente: este endpoint apenas confirma a assinatura e reconhece a
- * notificação (a confirmação chega ao cliente pelo return_url).
+ * Webhook Debito Pay — opcional: o polling em /api/debitopay/status já
+ * confirma o pagamento no browser, este endpoint não é obrigatório para a
+ * UX funcionar. Regista em Settings → Webhooks na Debito Pay apenas se
+ * quiser um registo server-side dos eventos payment.completed/failed.
+ * Valida a assinatura HMAC-SHA256 (header x-webhook-signature, sobre o
+ * corpo em bruto) conforme a documentação oficial — sem base de dados,
+ * apenas confirma a assinatura.
  */
 export async function POST(req: NextRequest) {
-  const raw = await req.text()
-  const sig = req.headers.get('x-debitopay-signature') || ''
-  const ts = req.headers.get('x-debitopay-timestamp') || '0'
-
-  const secret = process.env.DEBITOPAY_WEBHOOK_SECRET
+  const secret = process.env.DEBITO_PAY_WEBHOOK_SECRET
   if (!secret) return new Response('not_configured', { status: 500 })
 
-  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) {
-    return new Response('bad_sig', { status: 401 })
-  }
+  const raw = await req.text()
+  const sig = req.headers.get('x-webhook-signature') || ''
 
-  const expected = crypto.createHmac('sha256', secret).update(`${ts}.${raw}`).digest('hex')
+  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex')
   const expectedBuf = Buffer.from(expected, 'hex')
   const sigBuf = Buffer.from(sig, 'hex')
   if (expectedBuf.length !== sigBuf.length || !crypto.timingSafeEqual(expectedBuf, sigBuf)) {
     return new Response('bad_sig', { status: 401 })
   }
 
-  const payload = JSON.parse(raw) as { status?: string }
-  if (payload.status !== 'success') return new Response('ignored')
+  // payload.event: payment.completed | payment.failed | payment.refunded | payment.chargeback
+  JSON.parse(raw)
 
   return new Response('OK')
 }

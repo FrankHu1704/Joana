@@ -46,14 +46,14 @@ Não existe registo público de administradores. Para criar um novo administrado
 
 A conta da Joana (número `864597500`) já foi criada directamente na base de dados — **a senha nunca é guardada no código-fonte**, apenas na tabela de autenticação do Supabase, para evitar expor a credencial no repositório do GitHub.
 
-## Pagamentos automáticos (DebitoPay)
+## Pagamentos automáticos (Debito Pay)
 
-O checkout nativo (`/carrinho`) pode processar pagamentos automaticamente através do orquestrador DebitoPay — **sem base de dados**: `/api/debitopay/checkout` e `/api/debitopay/webhook` são um proxy sem estado (porte directo de `functions/checkout.js` e `functions/webhook.js` do pacote DebitoPay for Shopify), a Joana Store não cria nem guarda qualquer registo de encomenda.
+O checkout nativo (`/carrinho`) pode cobrar automaticamente via M-Pesa/e-Mola/mKesh — push USSD directo para o telemóvel do cliente, sem redireccionar para nenhum site. M-Pesa confirma na hora; e-Mola/mKesh confirmam por callback, por isso o browser faz polling a `/api/debitopay/status` até à confirmação. **Sem base de dados**: `/api/debitopay/checkout` e `/api/debitopay/status` são um proxy sem estado para o `payment-orchestrator` da Debito Pay — a Joana Store não cria nem guarda qualquer registo de encomenda.
 
-1. Preencha `DEBITOPAY_API_KEY`, `DEBITOPAY_MERCHANT_ID` e `DEBITOPAY_WEBHOOK_SECRET` (fornecidos pela DebitoPay) no `.env.local` / nas variáveis de ambiente da Vercel.
-2. Registe o endpoint de webhook `https://<domínio>/api/debitopay/webhook` junto da DebitoPay (usado apenas para validar a assinatura HMAC do pagamento).
+1. Preencha `DEBITO_PAY_API_KEY`, `DEBITO_PAY_MERCHANT_ID` e um `DEBITO_PAY_WALLET_CODE_<MÉTODO>` por método de pagamento activo (cada carteira Debito Pay está presa a um único método) no `.env.local` / nas variáveis de ambiente da Vercel.
+2. `DEBITO_PAY_WEBHOOK_SECRET` e o registo do endpoint `/api/debitopay/webhook` são **opcionais** — o polling client-side já confirma o pagamento sem precisar de webhook.
 
-Enquanto as variáveis `DEBITOPAY_*` não estiverem definidas, o botão "Pagar agora" recorre automaticamente ao checkout via WhatsApp.
+Enquanto as variáveis `DEBITO_PAY_*` não estiverem definidas, o botão "Pagar agora" recorre automaticamente ao checkout via WhatsApp.
 
 ## Catálogo inicial
 
@@ -91,7 +91,7 @@ src/
 - **Pesquisa inteligente** em tempo real com resultados instantâneos.
 - **Filtros** por categoria, preço e novidades/promoções/destaque, com scroll infinito.
 - **Favoritos e carrinho** persistidos no dispositivo (sem necessidade de conta de cliente).
-- **Pagamento automático via DebitoPay**: no carrinho, "Pagar agora" abre uma sessão de pagamento no orquestrador DebitoPay (`/api/debitopay/checkout`) e redirecciona o cliente. É um proxy sem estado — a Joana Store não cria nem guarda encomendas na base de dados, apenas encaminha o pedido de pagamento. O webhook (`/api/debitopay/webhook`) só valida a assinatura HMAC da DebitoPay. Sem as variáveis `DEBITOPAY_*` configuradas, o botão recorre automaticamente ao checkout via WhatsApp.
+- **Pagamento automático via Debito Pay**: no carrinho, "Pagar agora" cobra directamente via M-Pesa/e-Mola/mKesh — push USSD para o telemóvel do cliente, sem redireccionar (`/api/debitopay/checkout` + polling em `/api/debitopay/status`). É um proxy sem estado — a Joana Store não cria nem guarda encomendas na base de dados. Sem as variáveis `DEBITO_PAY_*` configuradas, o botão recorre automaticamente ao checkout via WhatsApp.
 - **Checkout via WhatsApp**: alternativa manual — o carrinho é convertido numa mensagem formatada e o pedido é enviado directamente pelo WhatsApp da loja.
 - **Cupões de desconto** validados via função segura no Supabase (`store_validate_coupon`).
 - **Estatísticas de visitantes**: cada visita é registada (`store_track_view`), alimentando o dashboard administrativo (visitantes totais/hoje, gráfico de visitas, gráfico por categoria, produtos mais vistos/vendidos, últimos acessos).
